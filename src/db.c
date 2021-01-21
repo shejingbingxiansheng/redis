@@ -168,7 +168,7 @@ robj *lookupKeyWriteOrReply(client *c, robj *key, robj *reply) {
 
 /* Add the key to the DB. It's up to the caller to increment the reference
  * counter of the value if needed.
- *
+ *增加key
  * The program is aborted if the key already exists. */
 void dbAdd(redisDb *db, robj *key, robj *val) {
     sds copy = sdsdup(key->ptr);
@@ -211,10 +211,12 @@ void dbOverwrite(redisDb *db, robj *key, robj *val) {
  * 1) The ref count of the value object is incremented.
  * 2) clients WATCHing for the destination key notified.
  * 3) The expire time of the key is reset (the key is made persistent).
- *
- * All the new keys in the database should be created via this interface. */
+ *过期时间会被重置
+ * All the new keys in the database should be created via this interface.
+ * 所有的新的key都通过这个借口被创建
+ * */
 void setKey(redisDb *db, robj *key, robj *val) {
-    if (lookupKeyWrite(db,key) == NULL) {
+    if (lookupKeyWrite(db,key) == NULL) {//如果key不存在，则直接添加
         dbAdd(db,key,val);
     } else {
         dbOverwrite(db,key,val);
@@ -284,7 +286,7 @@ int dbSyncDelete(redisDb *db, robj *key) {
  * configuration. Deletes the key synchronously or asynchronously. */
 int dbDelete(redisDb *db, robj *key) {
     return server.lazyfree_lazy_server_del ? dbAsyncDelete(db,key) :
-                                             dbSyncDelete(db,key);
+           dbSyncDelete(db,key);
 }
 
 /* Prepare the string object stored at 'key' to be modified destructively
@@ -471,11 +473,11 @@ void delGenericCommand(client *c, int lazy) {
     for (j = 1; j < c->argc; j++) {
         expireIfNeeded(c->db,c->argv[j]);
         int deleted  = lazy ? dbAsyncDelete(c->db,c->argv[j]) :
-                              dbSyncDelete(c->db,c->argv[j]);
+                       dbSyncDelete(c->db,c->argv[j]);
         if (deleted) {
             signalModifiedKey(c->db,c->argv[j]);
             notifyKeyspaceEvent(NOTIFY_GENERIC,
-                "del",c->argv[j],c->db->id);
+                                "del",c->argv[j],c->db->id);
             server.dirty++;
             numdel++;
         }
@@ -507,7 +509,7 @@ void selectCommand(client *c) {
     long id;
 
     if (getLongFromObjectOrReply(c, c->argv[1], &id,
-        "invalid DB index") != C_OK)
+                                 "invalid DB index") != C_OK)
         return;
 
     if (server.cluster_enabled && id != 0) {
@@ -633,7 +635,7 @@ void scanGenericCommand(client *c, robj *o, unsigned long cursor) {
     /* Object must be NULL (to iterate keys names), or the type of the object
      * must be Set, Sorted Set, or Hash. */
     serverAssert(o == NULL || o->type == OBJ_SET || o->type == OBJ_HASH ||
-                o->type == OBJ_ZSET);
+                 o->type == OBJ_ZSET);
 
     /* Set i to the first option argument. The previous one is the cursor. */
     i = (o == NULL) ? 2 : 3; /* Skip the key argument if needed. */
@@ -708,8 +710,8 @@ void scanGenericCommand(client *c, robj *o, unsigned long cursor) {
         do {
             cursor = dictScan(ht, cursor, scanCallback, NULL, privdata);
         } while (cursor &&
-              maxiterations-- &&
-              listLength(keys) < (unsigned long)count);
+                 maxiterations-- &&
+                 listLength(keys) < (unsigned long)count);
     } else if (o->type == OBJ_SET) {
         int pos = 0;
         int64_t ll;
@@ -726,8 +728,8 @@ void scanGenericCommand(client *c, robj *o, unsigned long cursor) {
         while(p) {
             ziplistGet(p,&vstr,&vlen,&vll);
             listAddNodeTail(keys,
-                (vstr != NULL) ? createStringObject((char*)vstr,vlen) :
-                                 createStringObjectFromLongLong(vll));
+                            (vstr != NULL) ? createStringObject((char*)vstr,vlen) :
+                            createStringObjectFromLongLong(vll));
             p = ziplistNext(o->ptr,p);
         }
         cursor = 0;
@@ -793,7 +795,7 @@ void scanGenericCommand(client *c, robj *o, unsigned long cursor) {
         listDelNode(keys, node);
     }
 
-cleanup:
+    cleanup:
     listSetFreeMethod(keys,decrRefCountVoid);
     listRelease(keys);
 }
@@ -822,17 +824,17 @@ void typeCommand(client *c) {
         type = "none";
     } else {
         switch(o->type) {
-        case OBJ_STRING: type = "string"; break;
-        case OBJ_LIST: type = "list"; break;
-        case OBJ_SET: type = "set"; break;
-        case OBJ_ZSET: type = "zset"; break;
-        case OBJ_HASH: type = "hash"; break;
-        case OBJ_STREAM: type = "stream"; break;
-        case OBJ_MODULE: {
-            moduleValue *mv = o->ptr;
-            type = mv->type->name;
-        }; break;
-        default: type = "unknown"; break;
+            case OBJ_STRING: type = "string"; break;
+            case OBJ_LIST: type = "list"; break;
+            case OBJ_SET: type = "set"; break;
+            case OBJ_ZSET: type = "zset"; break;
+            case OBJ_HASH: type = "hash"; break;
+            case OBJ_STREAM: type = "stream"; break;
+            case OBJ_MODULE: {
+                moduleValue *mv = o->ptr;
+                type = mv->type->name;
+            }; break;
+            default: type = "unknown"; break;
         }
     }
     addReplyStatus(c,type);
@@ -901,9 +903,9 @@ void renameGenericCommand(client *c, int nx) {
     signalModifiedKey(c->db,c->argv[1]);
     signalModifiedKey(c->db,c->argv[2]);
     notifyKeyspaceEvent(NOTIFY_GENERIC,"rename_from",
-        c->argv[1],c->db->id);
+                        c->argv[1],c->db->id);
     notifyKeyspaceEvent(NOTIFY_GENERIC,"rename_to",
-        c->argv[2],c->db->id);
+                        c->argv[2],c->db->id);
     server.dirty++;
     addReply(c,nx ? shared.cone : shared.ok);
 }
@@ -1041,11 +1043,11 @@ void swapdbCommand(client *c) {
 
     /* Get the two DBs indexes. */
     if (getLongFromObjectOrReply(c, c->argv[1], &id1,
-        "invalid first DB index") != C_OK)
+                                 "invalid first DB index") != C_OK)
         return;
 
     if (getLongFromObjectOrReply(c, c->argv[2], &id2,
-        "invalid second DB index") != C_OK)
+                                 "invalid second DB index") != C_OK)
         return;
 
     /* Swap... */
@@ -1094,7 +1096,7 @@ long long getExpire(redisDb *db, robj *key) {
 
     /* No expire? return ASAP */
     if (dictSize(db->expires) == 0 ||
-       (de = dictFind(db->expires,key->ptr)) == NULL) return -1;
+        (de = dictFind(db->expires,key->ptr)) == NULL) return -1;
 
     /* The entry was found in the expire dict, this means it should also
      * be present in the main dict (safety check). */
@@ -1144,17 +1146,17 @@ int keyIsExpired(redisDb *db, robj *key) {
     if (server.lua_caller) {
         now = server.lua_time_start;
     }
-    /* If we are in the middle of a command execution, we still want to use
-     * a reference time that does not change: in that case we just use the
-     * cached time, that we update before each call in the call() function.
-     * This way we avoid that commands such as RPOPLPUSH or similar, that
-     * may re-open the same key multiple times, can invalidate an already
-     * open object in a next call, if the next call will see the key expired,
-     * while the first did not. */
+        /* If we are in the middle of a command execution, we still want to use
+         * a reference time that does not change: in that case we just use the
+         * cached time, that we update before each call in the call() function.
+         * This way we avoid that commands such as RPOPLPUSH or similar, that
+         * may re-open the same key multiple times, can invalidate an already
+         * open object in a next call, if the next call will see the key expired,
+         * while the first did not. */
     else if (server.fixed_time_expire > 0) {
         now = server.mstime;
     }
-    /* For the other cases, we want to use the most fresh time we have. */
+        /* For the other cases, we want to use the most fresh time we have. */
     else {
         now = mstime();
     }
@@ -1168,7 +1170,7 @@ int keyIsExpired(redisDb *db, robj *key) {
  * in a given key, but such key may be already logically expired even if
  * it still exists in the database. The main way this function is called
  * is via lookupKey*() family of functions.
- *
+ *对于执行操作的key可能已过期
  * The behavior of the function depends on the replication role of the
  * instance, because slave instances do not expire keys, they wait
  * for DELs from the master for consistency matters. However even
@@ -1180,7 +1182,7 @@ int keyIsExpired(redisDb *db, robj *key) {
  * In masters as a side effect of finding a key which is expired, such
  * key will be evicted from the database. Also this may trigger the
  * propagation of a DEL/UNLINK command in AOF / replication stream.
- *
+ *在master节点，如果找到的key已经过期了，那么会将其删除。
  * The return value of the function is 0 if the key is still valid,
  * otherwise the function returns 1 if the key is expired. */
 int expireIfNeeded(redisDb *db, robj *key) {
@@ -1200,9 +1202,9 @@ int expireIfNeeded(redisDb *db, robj *key) {
     server.stat_expiredkeys++;
     propagateExpire(db,key,server.lazyfree_lazy_expire);
     notifyKeyspaceEvent(NOTIFY_EXPIRED,
-        "expired",key,db->id);
+                        "expired",key,db->id);
     return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
-                                         dbSyncDelete(db,key);
+           dbSyncDelete(db,key);
 }
 
 /* -----------------------------------------------------------------------------
@@ -1348,10 +1350,10 @@ int *sortGetKeys(struct redisCommand *cmd, robj **argv, int argc, int *numkeys) 
         char *name;
         int skip;
     } skiplist[] = {
-        {"limit", 2},
-        {"get", 1},
-        {"by", 1},
-        {NULL, 0} /* End of elements. */
+            {"limit", 2},
+            {"get", 1},
+            {"by", 1},
+            {NULL, 0} /* End of elements. */
     };
 
     for (i = 2; i < argc; i++) {
@@ -1432,7 +1434,7 @@ int *georadiusGetKeys(struct redisCommand *cmd, robj **argv, int argc, int *numk
     /* Add all key positions to keys[] */
     keys[0] = 1;
     if(num > 1) {
-         keys[1] = stored_key;
+        keys[1] = stored_key;
     }
     *numkeys = num;
     return keys;

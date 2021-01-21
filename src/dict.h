@@ -49,12 +49,12 @@ typedef struct dictEntry {
     union {
         void *val;
         uint64_t u64;
-        int64_t s64;
+        int64_t s64;//当设置了过期时间时用于存储过期时间
         double d;
     } v;
     struct dictEntry *next;
 } dictEntry;
-
+//其中包含了对字典进行操作的函数指针，不同的类型的字典有不同的函数实现
 typedef struct dictType {
     uint64_t (*hashFunction)(const void *key);
     void *(*keyDup)(void *privdata, const void *key);
@@ -78,6 +78,9 @@ typedef struct dict {
     void *privdata;
     dictht ht[2];
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    //记录当前运行的安全迭代器的数量，当有安全迭代器绑定到该字典时，将不会进行rehash。
+    // 比如使用keys命令就会使用安全迭代器
+    //使用普通迭代器不会改变该数值
     unsigned long iterators; /* number of iterators currently running */
 } dict;
 

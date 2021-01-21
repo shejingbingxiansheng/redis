@@ -109,7 +109,7 @@ static void _dictReset(dictht *ht)
 
 /* Create a new hash table */
 dict *dictCreate(dictType *type,
-        void *privDataPtr)
+                 void *privDataPtr)
 {
     dict *d = zmalloc(sizeof(*d));
 
@@ -119,7 +119,7 @@ dict *dictCreate(dictType *type,
 
 /* Initialize the hash table */
 int _dictInit(dict *d, dictType *type,
-        void *privDataPtr)
+              void *privDataPtr)
 {
     _dictReset(&d->ht[0]);
     _dictReset(&d->ht[1]);
@@ -178,13 +178,15 @@ int dictExpand(dict *d, unsigned long size)
 
 /* Performs N steps of incremental rehashing. Returns 1 if there are still
  * keys to move from the old to the new hash table, otherwise 0 is returned.
- *
+ *执行N步增量rehash。
  * Note that a rehashing step consists in moving a bucket (that may have more
  * than one key as we use chaining) from the old to the new hash table, however
  * since part of the hash table may be composed of empty spaces, it is not
  * guaranteed that this function will rehash even a single bucket, since it
  * will visit at max N*10 empty buckets in total, otherwise the amount of
- * work it does would be unbound and the function may block for a long time. */
+ * work it does would be unbound and the function may block for a long time.
+ *注意一个rehash step会将old hash 表中一个bucket的所有元素搬运到new hash table中
+ * */
 int dictRehash(dict *d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dictIsRehashing(d)) return 0;
@@ -261,7 +263,7 @@ static void _dictRehashStep(dict *d) {
     if (d->iterators == 0) dictRehash(d,1);
 }
 
-/* Add an element to the target hash table */
+/* Add an element to the target hash table 添加原始到hash表*/
 int dictAdd(dict *d, void *key, void *val)
 {
     dictEntry *entry = dictAddRaw(d,key,NULL);
@@ -623,7 +625,7 @@ dictEntry *dictGetRandomKey(dict *d)
                                             d->ht[1].size -
                                             d->rehashidx));
             he = (h >= d->ht[0].size) ? d->ht[1].table[h - d->ht[0].size] :
-                                      d->ht[0].table[h];
+                 d->ht[0].table[h];
         } while(he == NULL);
     } else {
         do {
@@ -1040,7 +1042,7 @@ size_t _dictGetStatsHt(char *buf, size_t bufsize, dictht *ht, int tableid) {
 
     if (ht->used == 0) {
         return snprintf(buf,bufsize,
-            "No stats available for empty dictionaries\n");
+                        "No stats available for empty dictionaries\n");
     }
 
     /* Compute stats. */
@@ -1067,25 +1069,25 @@ size_t _dictGetStatsHt(char *buf, size_t bufsize, dictht *ht, int tableid) {
 
     /* Generate human readable stats. */
     l += snprintf(buf+l,bufsize-l,
-        "Hash table %d stats (%s):\n"
-        " table size: %ld\n"
-        " number of elements: %ld\n"
-        " different slots: %ld\n"
-        " max chain length: %ld\n"
-        " avg chain length (counted): %.02f\n"
-        " avg chain length (computed): %.02f\n"
-        " Chain length distribution:\n",
-        tableid, (tableid == 0) ? "main hash table" : "rehashing target",
-        ht->size, ht->used, slots, maxchainlen,
-        (float)totchainlen/slots, (float)ht->used/slots);
+                  "Hash table %d stats (%s):\n"
+                  " table size: %ld\n"
+                  " number of elements: %ld\n"
+                  " different slots: %ld\n"
+                  " max chain length: %ld\n"
+                  " avg chain length (counted): %.02f\n"
+                  " avg chain length (computed): %.02f\n"
+                  " Chain length distribution:\n",
+                  tableid, (tableid == 0) ? "main hash table" : "rehashing target",
+                  ht->size, ht->used, slots, maxchainlen,
+                  (float)totchainlen/slots, (float)ht->used/slots);
 
     for (i = 0; i < DICT_STATS_VECTLEN-1; i++) {
         if (clvector[i] == 0) continue;
         if (l >= bufsize) break;
         l += snprintf(buf+l,bufsize-l,
-            "   %s%ld: %ld (%.02f%%)\n",
-            (i == DICT_STATS_VECTLEN-1)?">= ":"",
-            i, clvector[i], ((float)clvector[i]/ht->size)*100);
+                      "   %s%ld: %ld (%.02f%%)\n",
+                      (i == DICT_STATS_VECTLEN-1)?">= ":"",
+                      i, clvector[i], ((float)clvector[i]/ht->size)*100);
     }
 
     /* Unlike snprintf(), teturn the number of characters actually written. */
