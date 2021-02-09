@@ -1547,7 +1547,7 @@ void initServerConfig(void) {
     server.timezone = getTimeZone(); /* Initialized by tzset(). */
     server.configfile = NULL;
     server.executable = NULL;
-    server.hz = server.config_hz = CONFIG_DEFAULT_HZ;
+    server.hz = server.config_hz = CONFIG_DEFAULT_HZ;//serverCron函数执行频率，默认是10
     server.dynamic_hz = CONFIG_DEFAULT_DYNAMIC_HZ;
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
     server.port = CONFIG_DEFAULT_SERVER_PORT;
@@ -2209,7 +2209,9 @@ void InitServerLast() {
 }
 
 /* Populates the Redis Command Table starting from the hard coded list
- * we have on top of redis.c file. */
+ * we have on top of redis.c file.
+ * 初始化命令表
+ * */
 void populateCommandTable(void) {
     int j;
     int numcommands = sizeof(redisCommandTable)/sizeof(struct redisCommand);

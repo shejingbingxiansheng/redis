@@ -618,8 +618,8 @@ typedef struct redisObject {
     unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
                             * LFU data (least significant 8 bits frequency
                             * and most significant 16 bits access time). */
-    int refcount;
-    void *ptr;
+    int refcount;//引用计数
+    void *ptr;//指向实际存储的某种数据结构，当robj存储的数据可以用long类型表示时，数据则直接存储在ptr字段。
 } robj;
 
 /* Macro used to initialize a Redis object allocated on the stack.
