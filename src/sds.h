@@ -50,7 +50,7 @@ struct __attribute__ ((__packed__)) sdshdr5 {
 };
 struct __attribute__ ((__packed__)) sdshdr8 {
     uint8_t len; /* used */
-    uint8_t alloc; /* excluding the header and null terminator */
+    uint8_t alloc; /*总长度，不包括头和终止符 excluding the header and null terminator */
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
     char buf[];
 };
